@@ -87,6 +87,30 @@ fips也提供 fips_begin_sharelib 这样的创建dll的cmake宏。只是其官�
 
 作为跨平台，exe/lib/dll 在linux上也有对等的概念 */a/so，在fips的cmake宏中就高度统一了起来： fips_begin_app/fips_begin_lib/fips_begin_sharelib，所以在fips支持的CMakeLists.txt中没有过多的platform判断和文件后缀名的麻烦。
 
+## 使用方式
+
+1. 安装python和cmake
+2. 将[Code Janitor大佬的fips工程](https://github.com/floooh/fips) clone下来。
+3. 将 [我这个工程](https://github.com/Ron2014/fips-lua) clone下来。
+4. 保证 fips 和 fips-lua 这两个目录是同一级的。
+5. 执行以下命令
+
+```
+cd fips-lua
+python fips gen
+```
+
+你会看到vs工程生成在fips-build目录下。当然你也可以执行命令build，它会先生成工程，然后就直接编译了。
+
+```
+cd fips-lua
+python fips build
+```
+
+编译后的结果都放到fips-deploy目录下。
+
+windows编译可能会有个 [小插曲](https://github.com/Ron2014/fips-lua/wiki/warning-C4819-x-error-C2220-%E7%9A%84%E8%A7%A3%E5%86%B3) 。
+
 ## 实现与参考文件
 
 ### 工程文件
