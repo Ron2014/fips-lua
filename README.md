@@ -2,7 +2,7 @@
 
 Fips 是用python编写的命令行工具集，基于对cmake的封装（cmake wrapper），为C/C++工程提供了“集成构建环境”（Integrated Build Environment，IBE）。
 
-## 我知道IDE，但是啥是IBE
+## 我知道IDE，但啥是IBE
 
 市面上已经有很多构建系统诸如 scratch，Fips在这里不敢班门弄斧（重复造轮子），而是把这些构建工具组合在fips命令行工具集中：
 
