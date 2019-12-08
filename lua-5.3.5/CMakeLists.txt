@@ -1,0 +1,21 @@
+fips_begin_lib(lua-5.3.5-lib)
+    fips_files_ex(src/ *.c EXCEPT lua.c luac.c GROUP "sources")
+    fips_files_ex(src/ *.h GROUP "headers")
+fips_end_lib()
+
+fips_begin_sharedlib(lua-5.3.5-dll)
+    fips_files_ex(src/ *.c EXCEPT lua.c luac.c GROUP "sources")
+    fips_files_ex(src/ *.h GROUP "headers")
+fips_end_sharedlib()
+
+fips_begin_app(lua-5.3.5-interpreter cmdline)
+    fips_dir(src GROUP .)
+    fips_files(lua.c)
+    fips_deps(lua-5.3.5-lib)
+fips_end_app()
+
+fips_begin_app(lua-5.3.5-compiler cmdline)
+    fips_dir(src GROUP .)
+    fips_files(luac.c)
+    fips_deps(lua-5.3.5-lib)
+fips_end_app()
