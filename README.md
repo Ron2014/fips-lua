@@ -82,26 +82,26 @@ lua版本也是个问题。
 5. lua解释器的exe工程。仅包含lua.c文件，但是编译时依赖虚拟机dll工程。
 6. lua编译器的exe工程。仅包含luac.c文件，但是编译时依赖虚拟机dll工程。
 
-fips也提供 fips_begin_sharelib 这样的创建dll的cmake宏。只是其官网推荐静态编译，所以dll的工程构建就作为保留项目交给网友自己推敲啦。
+fips也提供 fips_begin_sharelib 这样的创建dll的cmake宏。只是其官网推荐静态编译，所以dll的工程构建就作为保留项目交给网友自己推敲啦:)。
 
 要注意的是，这里说来说去都是讨论工程文件如何编写，并没有涉及到任何文件的拷贝，也就是说dll工程中的文件和lib工程中的文件是同一个，要改一起改。
 
-作为跨平台，exe/lib/dll 在linux上也有对等的概念 */a/so，在fips的cmake宏中就高度统一了起来： fips_begin_app/fips_begin_lib/fips_begin_sharelib，所以在fips支持的CMakeLists.txt中没有过多的platform判断和文件后缀名的麻烦。
+作为跨平台，exe/lib/dll 在linux上也有对等的概念 */a/so，在fips提供的cmake宏中就高度统一了起来： fips_begin_app/fips_begin_lib/fips_begin_sharelib，所以在fips支持的CMakeLists.txt中没有过多的platform判断和文件后缀名的麻烦。
 
 ## 使用方式
 
 1. 安装python和cmake
-2. 将[Code Janitor大佬的fips工程](https://github.com/floooh/fips) clone下来。
+2. 将 [Code Janitor大佬的fips工程](https://github.com/floooh/fips) clone下来。
 3. 将 [我这个工程](https://github.com/Ron2014/fips-lua) clone下来。
 4. 保证 fips 和 fips-lua 这两个目录是同一级的。
-5. 执行以下命令
+5. 执行以下命令进行工程构建
 
 ```
 cd fips-lua
 python fips gen
 ```
 
-你会看到vs工程生成在fips-build目录下。当然你也可以执行命令build，它会先生成工程，然后就直接编译了。
+你会看到vs工程生成在fips-build目录下。当然你也可以执行命令build，build=构建+编译。
 
 ```
 cd fips-lua
