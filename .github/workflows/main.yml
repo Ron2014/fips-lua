@@ -16,7 +16,7 @@ jobs:
     - name: Run a multi-line script
       run: |
         ./fips build
-jobs:
+
   build:
 
     runs-on: windows-latest
