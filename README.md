@@ -110,7 +110,7 @@ python fips build
 
 编译后的结果都放到fips-deploy目录下。
 
-windows编译可能会有个 [小插曲](https://github.com/Ron2014/fips-lua/wiki/warning-C4819-x-error-C2220-%E7%9A%84%E8%A7%A3%E5%86%B3) 。
+windows编译可能会有个 [小插曲](https://github.com/Ron2014/fips-lua/wiki/fips:-warning-C4819-x-error-C2220-%E7%9A%84%E8%A7%A3%E5%86%B3) 。
 
 ## 实现与参考文件
 
