@@ -1,0 +1,3 @@
+[submodule "fips"]
+	path = fips
+	url = https://github.com/floooh/fips
