@@ -28,3 +28,14 @@ fips_end_app()
 #     fips_files_ex(src/ *.c EXCEPT lua.c luac.c GROUP "sources")
 #     fips_files_ex(src/ *.h GROUP "headers")
 # fips_end_sharedlib()
+
+fips_begin_unittest(test)
+    fips_vs_warning_level(3)
+    fips_vs_disable_warnings(4819)
+
+    fips_include_directories(src)
+    fips_dir(test)
+    fips_files(MaskTest.cc)
+
+    fips_deps(lua-5.3.5-lib)
+fips_end_unittest()

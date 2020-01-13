@@ -24,3 +24,9 @@
 #           cwd:    WORKING DIRECTORY FOR 'fips run target'
 #       ...
 
+imports:
+    fips-unittestpp:
+        git: https://github.com/floooh/fips-unittestpp.git
+defines:
+    FIPS_UNITTESTS: ON
+    FIPS_UNITTESTS_HEADLESS: ON
