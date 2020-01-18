@@ -29,5 +29,4 @@ TEST(MaskTest) {
     // 1065353216
     // 0011 1111 1000 0000 0000 0000 0000 0000B
     cout << MASK1(7, 23) << endl;
-    cout << "Hello world" << endl;
 }
