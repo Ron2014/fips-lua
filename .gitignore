@@ -5,3 +5,5 @@
 .vscode/
 .idea/
 #<fips
+fips-build/
+fips-deploy/

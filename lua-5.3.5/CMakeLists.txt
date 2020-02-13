@@ -29,13 +29,12 @@ fips_end_app()
 #     fips_files_ex(src/ *.h GROUP "headers")
 # fips_end_sharedlib()
 
-fips_begin_unittest(test)
+fips_begin_unittest(lua-5.3.5)
     fips_vs_warning_level(3)
     fips_vs_disable_warnings(4819)
 
     fips_include_directories(src)
-    fips_dir(test)
-    fips_files(MaskTest.cc)
+    fips_files_ex(test/ *.cc GROUP "sources")
 
     fips_deps(lua-5.3.5-lib)
 fips_end_unittest()
