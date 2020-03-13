@@ -1,4 +1,4 @@
-name: CI windows
+name: CI win_d
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 jobs:
   build:
 
-    runs-on: windows-latest
+    runs-on: windows-2016
 
     steps:
     - uses: actions/checkout@v1
@@ -15,4 +15,11 @@ jobs:
       run: echo Hello, world!
     - name: Run a multi-line script
       run: |
-        cd code; fips build win_d.yml
+        cd code; ./fips build win_d
+    - name: Show CMakeOutput.log
+      if: failure()
+      run: cat cpp/trunk/fips-build/code/windows/CMakeFiles/CMakeOutput.log
+    - name: Show CMakeError.log
+      if: failure()
+      run: cat cpp/trunk/fips-build/code/windows/CMakeFiles/CMakeError.log
+    
