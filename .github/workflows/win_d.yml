@@ -4,6 +4,8 @@ on:
   push:
     branches:    
       - master
+    paths:
+      - 'code/**'
 jobs:
   build:
 
@@ -18,8 +20,8 @@ jobs:
         cd code; ./fips build win_d
     - name: Show CMakeOutput.log
       if: failure()
-      run: cat cpp/trunk/fips-build/code/windows/CMakeFiles/CMakeOutput.log
+      run: cat fips-build/code/win_d/CMakeFiles/CMakeOutput.log
     - name: Show CMakeError.log
       if: failure()
-      run: cat cpp/trunk/fips-build/code/windows/CMakeFiles/CMakeError.log
+      run: cat fips-build/code/win_d/CMakeFiles/CMakeError.log
     
