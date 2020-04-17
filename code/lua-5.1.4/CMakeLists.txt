@@ -1,5 +1,6 @@
 fips_begin_lib(lua-5.1.4-lib)
     fips_vs_disable_warnings(4819)
+    # add_definitions("-D__SIZE_TYPE__=unsigned int")
     fips_files_ex(src/ *.c EXCEPT lua.c luac.c GROUP "sources")
     fips_files_ex(src/ *.h GROUP "headers")
 fips_end_lib()
