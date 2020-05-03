@@ -1,3 +1,6 @@
 [submodule "fips"]
 	path = fips
 	url = https://github.com/Ron2014/fips
+[submodule "code/LuaJIT"]
+	path = code/LuaJIT
+	url = https://github.com/Ron2014/LuaJIT

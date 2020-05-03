@@ -12,6 +12,7 @@ fips_setup()
 fips_project(lua)
 fips_add_subdirectory(lua-5.1.4)
 fips_add_subdirectory(lua-5.3.5)
+fips_add_subdirectory(LuaJIT)
 fips_finish()
 
 

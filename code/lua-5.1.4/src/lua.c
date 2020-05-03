@@ -117,9 +117,12 @@ static int docall (lua_State *L, int narg, int clear) {
   return status;
 }
 
+#include "lstate.h"
 
 static void print_version (void) {
-  l_message(NULL, LUA_RELEASE "  " LUA_COPYRIGHT);
+  char msg[100];
+  snprintf(msg, 100, "sizeof(lua_State):%zd sizeof(global_State):%zd\n %s %s", sizeof(lua_State), sizeof(global_State), LUA_RELEASE, LUA_COPYRIGHT);
+  l_message(NULL, msg);
 }
 
 
