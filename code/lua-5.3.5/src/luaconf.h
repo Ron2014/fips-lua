@@ -732,7 +732,12 @@
 #endif
 
 
-/*
+/**
+ * lua_State 结构的头部
+ * 一片指针大小的内存空间, 关联一个lua_State
+ * 程序可以使用这个指针自定义任何与lua_State有关的用途, Lua不会使用它
+ * 初始化新线程时, 会拷贝这个指针的内容(所以和global_State一样, 是全局唯一的)
+ * 
 @@ LUA_EXTRASPACE defines the size of a raw memory area associated with
 ** a Lua state with very fast access.
 ** CHANGE it if you need a different size.
@@ -740,7 +745,9 @@
 #define LUA_EXTRASPACE		(sizeof(void *))		// 一个指针的字节数
 
 
-/*
+/**
+ * lua_Debug 中用来表明 lua文件路径 的字符串数组 short_src 的长度
+ * 
 @@ LUA_IDSIZE gives the maximum size for the description of the source
 @@ of a function in debug information.
 ** CHANGE it if you want a different size.
@@ -748,7 +755,9 @@
 #define LUA_IDSIZE	60
 
 
-/*
+/**
+ * luaL_Buffer 中缓冲区的长度
+ * 
 @@ LUAL_BUFFERSIZE is the buffer size used by the lauxlib buffer system.
 ** CHANGE it if it uses too much C-stack space. (For long double,
 ** 'string.format("%.99f", -1e4932)' needs 5034 bytes, so a

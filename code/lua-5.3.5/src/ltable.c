@@ -123,6 +123,7 @@ static Node *mainposition (const Table *t, const TValue *key) {
     case LUA_TSHRSTR:
       return hashstr(t, tsvalue(key));
     case LUA_TLNGSTR:
+      // 长字符串作为 table 的key 需要hash
       return hashpow2(t, luaS_hashlongstr(tsvalue(key)));
     case LUA_TBOOLEAN:
       return hashboolean(t, bvalue(key));
@@ -451,7 +452,8 @@ static Node *getfreepos (Table *t) {
 
 
 
-/*
+/**
+ * 
 ** inserts a new key into a hash table; first, check whether key's main
 ** position is free. If not, check whether colliding node is in its main
 ** position or not: if it is not, move colliding node to an empty place and
@@ -615,6 +617,9 @@ TValue *luaH_set (lua_State *L, Table *t, const TValue *key) {
 }
 
 
+/**
+ * t[key] = value
+*/
 void luaH_setint (lua_State *L, Table *t, lua_Integer key, TValue *value) {
   const TValue *p = luaH_getint(t, key);
   TValue *cell;

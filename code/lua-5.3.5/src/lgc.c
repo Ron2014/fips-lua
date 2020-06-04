@@ -195,15 +195,29 @@ void luaC_upvalbarrier_ (lua_State *L, UpVal *uv) {
 
 void luaC_fix (lua_State *L, GCObject *o) {
   global_State *g = G(L);
+  
   lua_assert(g->allgc == o);  /* object must be 1st in 'allgc' list! */
+  // 为什么是灰色, 而不是黑色呢?
   white2gray(o);  /* they will be gray forever */
   g->allgc = o->next;  /* remove object from 'allgc' list */
+
   o->next = g->fixedgc;  /* link it to 'fixedgc' list */
   g->fixedgc = o;
 }
 
 
-/*
+/**
+ * 创建一个 GCObject, 并立即链接到垃圾收集器 g->allgc 上
+ * 
+ * luaF_newCclosure----|---- LUA_TFUNCTION
+ * luaF_newLclosure----|
+ * luaF_newproto------------ LUA_TPROTO
+ * luaS_newudata------------ LUA_TUSERDATA
+ * luaH_new------------------LUA_TTABLE
+ * createstrobj--------------LUA_TSTRING
+ * 
+ * LUA_TTHREAD 的 GCObject 初始化操作是自己完成的 lua_newthread
+ * 
 ** create a new collectable object (with given type and size) and link
 ** it to 'allgc' list.
 */
@@ -832,7 +846,9 @@ static GCObject **sweeptolive (lua_State *L, GCObject **p) {
 ** =======================================================
 */
 
-/*
+/**
+ * check 的同时消减hash表大小为原来一半
+ * 利用率 < 25%
 ** If possible, shrink string table
 */
 static void checkSizes (lua_State *L, global_State *g) {

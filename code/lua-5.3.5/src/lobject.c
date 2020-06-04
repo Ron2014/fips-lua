@@ -393,14 +393,19 @@ static void pushstr (lua_State *L, const char *str, size_t l) {
 }
 
 
-/*
+/**
+ * 对于格式化字符串
+ * 对 fmt 进行截取并和 argp 元素比对
+ * 将截取的字符一个个压栈 pushstr
+ * 最终再 luaV_concat 连接
+ * 
 ** this function handles only '%d', '%c', '%f', '%p', and '%s'
    conventional formats, plus Lua-specific '%I' and '%U'
 */
 const char *luaO_pushvfstring (lua_State *L, const char *fmt, va_list argp) {
   int n = 0;
   for (;;) {
-    const char *e = strchr(fmt, '%');
+    const char *e = strchr(fmt, '%');   // 找到 % 的位置, 返回指针
     if (e == NULL) break;
     pushstr(L, fmt, e - fmt);
     switch (*(e+1)) {
@@ -465,6 +470,9 @@ const char *luaO_pushvfstring (lua_State *L, const char *fmt, va_list argp) {
 }
 
 
+/**
+ * 变长参数格式化字符串
+*/
 const char *luaO_pushfstring (lua_State *L, const char *fmt, ...) {
   const char *msg;
   va_list argp;

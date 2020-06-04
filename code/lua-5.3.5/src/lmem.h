@@ -24,7 +24,7 @@
  *       Table 中的 *node 哈希表(Node)
  *       Proto 中的 *code 指令集(Instruction)
  *       Proto 中的 *k 常量数组(TValue)
- *       Proto 中的 **p 函数中的函数(*Proto)
+ *       Proto 中的 **p 函数中的函数(Proto*)
  *       Proto 中的 *upvalues upvalue信息(Upvaldesc)
  *       Proto 中的 *lineinfo 行号信息(int)
  *       Proto 中的 *locvars 局部变量(LocVar)
@@ -116,6 +116,14 @@
 #define luaM_new(L,t)		cast(t *, luaM_malloc(L, sizeof(t)))
 #define luaM_newvector(L,n,t) \
 		cast(t *, luaM_reallocv(L, NULL, 0, n, sizeof(t)))
+
+/**
+ * 只有两个地方会用到:
+ * 1. luaC_newobj
+ * 2. lua_newthread
+ * 
+ * 创建的都是 GCObject
+ */
 
 #define luaM_newobject(L,tag,s)	luaM_realloc_(L, NULL, tag, (s))
 

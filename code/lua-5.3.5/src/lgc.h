@@ -106,8 +106,9 @@
 // 若 m 为 灰色 000B：!(011 & ow) 返回 FALSE
 #define isdeadm(ow,m)	(!(((m) ^ WHITEBITS) & (ow)))
 
-// otherwhite & marked == 0 就是死对象（垃圾）了
-// 为什么不用 currentwhite & marked == 1 来判断呢？
+// otherwhite & marked == 1 就是死对象（垃圾）了
+// otherwhite 表示经历过一次完整GC了, 即
+// currentwhite 已更新, 那些还是上一个 white 的且 marked 就是垃圾了
 #define isdead(g,v)	isdeadm(otherwhite(g), (v)->marked)
 
 #define changewhite(x)	((x)->marked ^= WHITEBITS)

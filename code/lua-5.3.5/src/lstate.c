@@ -81,11 +81,15 @@ typedef struct LG {
 static unsigned int makeseed (lua_State *L) {
   char buff[4 * sizeof(size_t)];
   unsigned int h = luai_makeseed();
+  
+  // 将4种类型的指针地址号拷贝到 buff 里
+  // p 最终等于 sizeof(void*) * 4
   int p = 0;
   addbuff(buff, p, L);  /* heap variable */
   addbuff(buff, p, &h);  /* local variable */
   addbuff(buff, p, luaO_nilobject);  /* global variable */
   addbuff(buff, p, &lua_newstate);  /* public function */
+  
   lua_assert(p == sizeof(buff));
   return luaS_hash(buff, p, h);
 }
@@ -181,6 +185,12 @@ static void freestack (lua_State *L) {
 /*
  * 注册表 registry 是 global_State 记录的一张表：g->l_registry，全局唯一
  * 对于 L 中的数据访问，指定索引为 LUA_REGISTRYINDEX，会在 index2addr 中定位于此
+ * 
+ * 其中包含两个k-v映射关系(k都是int)
+ * LUA_RIDX_MAINTHREAD    主线程(lua_State)
+ * LUA_RIDX_GLOBALS       _G表(table)
+ * 
+ * 
 ** Create registry table and its predefined values
 */
 static void init_registry (lua_State *L, global_State *g) {
@@ -188,10 +198,17 @@ static void init_registry (lua_State *L, global_State *g) {
   /* create registry */
   Table *registry = luaH_new(L);
   sethvalue(L, &g->l_registry, registry);
-  luaH_resize(L, registry, LUA_RIDX_LAST, 0);
+  luaH_resize(L, registry, LUA_RIDX_LAST, 0);   // LUA_RIDX_LAST 表示的是个长度值
+
   /* registry[LUA_RIDX_MAINTHREAD] = L */
   setthvalue(L, &temp, L);  /* temp = L */
   luaH_setint(L, registry, LUA_RIDX_MAINTHREAD, &temp);
+  /**
+   * LUA_RIDX_MAINTHREAD 没有多大作用
+   * 获取主线程的方式可以先拿到 global_State, 然后获取它的 mainthread 字段
+   * 参考: lua_newstate
+  */
+  
   /* registry[LUA_RIDX_GLOBALS] = table of globals */
   sethvalue(L, &temp, luaH_new(L));  /* temp = new table (global table) */
   luaH_setint(L, registry, LUA_RIDX_GLOBALS, &temp);
@@ -205,23 +222,28 @@ static void init_registry (lua_State *L, global_State *g) {
 static void f_luaopen (lua_State *L, void *ud) {
   global_State *g = G(L);
   UNUSED(ud);
-  stack_init(L, L);  /* init stack */
-  init_registry(L, g);
-  luaS_init(L);
-  luaT_init(L);
-  luaX_init(L);
+  stack_init(L, L);       /* init stack */
+  init_registry(L, g);    // 初始化注册表(table)
+  
+  luaS_init(L);           // 初始化(短)字符串哈希(缓存)表
+  luaT_init(L);           // 初始化元方法的名称列表
+  luaX_init(L);           // 初始化关键字
+
   g->gcrunning = 1;  /* allow gc */
   g->version = lua_version(NULL);
   luai_userstateopen(L);
 }
 
 
-/*
+/**
+ * 初始化主线程 lua_State
+ * 
 ** preinitialize a thread with consistent values without allocating
 ** any memory (to avoid errors)
 */
 static void preinit_thread (lua_State *L, global_State *g) {
   G(L) = g;       // 最主要的操作：global_State 赋给这个线程（协程），G(L)->mainthread 就能找到主线程
+
   L->stack = NULL;
   L->ci = NULL;
   L->nci = 0;
@@ -257,32 +279,43 @@ static void close_state (lua_State *L) {
 
 /**
  * 创建协程
- * newthread 只会创建一个新的 lua_State
- * global_State 是真的全局唯一
+ * newthread 只会创建一个新的 lua_State (非主线程)
+ * global_State 是真的全局唯一 (所有 lua_State 共享)
 */
 LUA_API lua_State *lua_newthread (lua_State *L) {
   global_State *g = G(L);   // 主线程拿到的 global_State
   lua_State *L1;
   lua_lock(L);
   luaC_checkGC(L);
-  /* create new thread */
+  
+  /**
+   * 与 lua_newstate 不同
+   * 这里申请的是 LX 空间 而非 LG
+   * 
+   * create new thread */
   L1 = &cast(LX *, luaM_newobject(L, LUA_TTHREAD, sizeof(LX)))->l;
+
+  // 类似 luaC_newobj 的操作
   L1->marked = luaC_white(g);
   L1->tt = LUA_TTHREAD;
   /* link it on list 'allgc' */
   L1->next = g->allgc;
   g->allgc = obj2gco(L1);
+  
   /* anchor it on L stack */
   setthvalue(L, L->top, L1);
   api_incr_top(L);
+
   preinit_thread(L1, g);    // 初始化子线程
   L1->hookmask = L->hookmask;
   L1->basehookcount = L->basehookcount;
   L1->hook = L->hook;
   resethookcount(L1);
+
   /* initialize L1 extra space */
   memcpy(lua_getextraspace(L1), lua_getextraspace(g->mainthread),
          LUA_EXTRASPACE);
+
   luai_userstatethread(L, L1);
   stack_init(L1, L);  /* init stack */
   lua_unlock(L);
@@ -306,7 +339,11 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   int i;
   lua_State *L;
   global_State *g;
+
+  // lua_State 和 global_State 的内存空间是一起申请的
+  // 也就是说, 它们的内存地址实际上是连续的
   LG *l = cast(LG *, (*f)(ud, NULL, LUA_TTHREAD, sizeof(LG)));
+
   if (l == NULL) return NULL;
   L = &l->l.l;
   g = &l->g;
@@ -314,15 +351,20 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   L->tt = LUA_TTHREAD;
   g->currentwhite = bitmask(WHITE0BIT);   // 01B
   L->marked = luaC_white(g);
-  preinit_thread(L, g);
-  g->frealloc = f;
-  g->ud = ud;
-  g->mainthread = L;
-  g->seed = makeseed(L);
+  
+  preinit_thread(L, g);   // L->l_G = g;--------------|
+  g->frealloc = f;        // 内存申请函数              |-----两者互相建立关系
+  g->ud = ud;             // 内存申请函数附加参数       |
+  g->mainthread = L;      // g->mainthread = L;-------|
+
+  g->seed = makeseed(L);  // 用于 luaS_hash 的种子
+
   g->gcrunning = 0;  /* no GC while building state */
   g->GCestimate = 0;
+  
   g->strt.size = g->strt.nuse = 0;
   g->strt.hash = NULL;
+
   setnilvalue(&g->l_registry);
   g->panic = NULL;
   g->version = NULL;
@@ -338,6 +380,7 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   g->gcfinnum = 0;
   g->gcpause = LUAI_GCPAUSE;
   g->gcstepmul = LUAI_GCMUL;
+
   for (i=0; i < LUA_NUMTAGS; i++) g->mt[i] = NULL;
   if (luaD_rawrunprotected(L, f_luaopen, NULL) != LUA_OK) {
     /* memory allocation error: free partial state */

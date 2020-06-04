@@ -16,10 +16,63 @@
 #include "lua.h"
 
 
-/*
+/** 
+ * 9种类型中, 如何确定GC对象
+ *    LUA_TNIL
+ *    LUA_TBOOLEAN
+ *    LUA_TLIGHTUSERDATA
+ *    LUA_TNUMBER
+ *    LUA_TSTRING   *
+ *    LUA_TTABLE    *
+ *    LUA_TFUNCTION *
+ *    LUA_TUSERDATA *
+ *    LUA_TTHREAD   *
+ * 
+ * 方法1. GCObject 的 CommonHeader
+ *    typedef struct TString {------ LUA_TSTRING
+ *      CommonHeader;
+ *    typedef struct Udata {-------- LUA_TUSERDATA
+ *      CommonHeader;
+ *    typedef struct Proto {-------- LUA_TPROTO
+ *      CommonHeader;
+ *    #define ClosureHeader \------- LUA_TFUNCTION
+ *      CommonHeader
+ *    typedef struct Table {-------- LUA_TTABLE
+ *      CommonHeader;
+ *    struct lua_State {------------ LUA_TTHREAD
+ *      CommonHeader;
+ * 
+ * 方法2. ctb 对 tag 的判断(注意tag都是子类型)
+ *    LUA_TSTRING:
+ *      ctb(LUA_TSHRSTR)
+ *      ctb(LUA_TLNGSTR)
+ *    LUA_TTABLE:
+ *      ctb(LUA_TTABLE)
+ *    LUA_TFUNCTION:
+ *      ctb(LUA_TCCL)
+ *      ctb(LUA_TLCL)
+ *    LUA_TUSERDATA:
+ *      ctb(LUA_TUSERDATA)
+ *    LUA_TTHREAD:
+ *      ctb(LUA_TTHREAD)
+ *    * 这里缺少了 LUA_TPROTO, 没办法, ctb都是对TValue*操作
+ *
+ * 方法3. luaC_newobj接口(lgc.c)
+ * 
+ * 方法4. GCUnion 定义
+ * 
+ */
+
+
+
+/**
+ * LUA_TPROTO 实际上是 LUA_TLCL(基础类型LUA_TFUNCTION) 的一部分: 见 LClosure 定义
+ * 同时 LUA_TPROTO 类型的对象 Proto 也不是包装给 lua 脚本使用的, 即它不算是正式的 TValue
+ * 从这点可以看出 GCObject.tt 和 TValue.tt_ 的区别了
+ * 
 ** Extra tags for non-values
 */
-#define LUA_TPROTO	LUA_NUMTAGS		/* function prototypes */
+#define LUA_TPROTO	LUA_NUMTAGS		      /* function prototypes */
 #define LUA_TDEADKEY	(LUA_NUMTAGS+1)		/* removed keys in tables */
 
 /*
@@ -28,7 +81,23 @@
 #define LUA_TOTALTAGS	(LUA_TPROTO + 2)
 
 
-/*
+/**
+ * 类型标记
+ * 0-3 比特: 基础类型, 最多支持16种, 目前有9种 
+ *    LUA_TNIL
+ *    LUA_TBOOLEAN
+ *    LUA_TLIGHTUSERDATA
+ *    LUA_TNUMBER
+ *    LUA_TSTRING
+ *    LUA_TTABLE
+ *    LUA_TFUNCTION
+ *    LUA_TUSERDATA
+ *    LUA_TTHREAD
+ *   
+ * 4-5 比特: 附加类型
+ *  
+ * 6   比特: GC 类型标记
+ * 
 ** tags for Tagged Values have the following use of bits:
 ** bits 0-3: actual tag (a LUA_T* value)
 ** bits 4-5: variant bits
@@ -44,25 +113,26 @@
 */
 
 /* Variant tags for functions */
-#define LUA_TLCL	(LUA_TFUNCTION | (0 << 4))  /* Lua closure */
-#define LUA_TLCF	(LUA_TFUNCTION | (1 << 4))  /* light C function */
-#define LUA_TCCL	(LUA_TFUNCTION | (2 << 4))  /* C closure */
+#define LUA_TLCL	(LUA_TFUNCTION | (0 << 4))  /* Lua closure        00-0110B */
+#define LUA_TLCF	(LUA_TFUNCTION | (1 << 4))  /* light C function   01-0110B */
+#define LUA_TCCL	(LUA_TFUNCTION | (2 << 4))  /* C closure          10-0110B */
 
 
 /* Variant tags for strings */
-#define LUA_TSHRSTR	(LUA_TSTRING | (0 << 4))  /* short strings */
-#define LUA_TLNGSTR	(LUA_TSTRING | (1 << 4))  /* long strings */
+#define LUA_TSHRSTR	(LUA_TSTRING | (0 << 4))  /* short strings  0-0100B */
+#define LUA_TLNGSTR	(LUA_TSTRING | (1 << 4))  /* long strings   1-0100B */
 
 
 /* Variant tags for numbers */
-#define LUA_TNUMFLT	(LUA_TNUMBER | (0 << 4))  /* float numbers */
-#define LUA_TNUMINT	(LUA_TNUMBER | (1 << 4))  /* integer numbers */
+#define LUA_TNUMFLT	(LUA_TNUMBER | (0 << 4))  /* float numbers    0-0011B */
+#define LUA_TNUMINT	(LUA_TNUMBER | (1 << 4))  /* integer numbers  1-0011B */
 
 
 /* Bit mark for collectable types */
 #define BIT_ISCOLLECTABLE	(1 << 6)
 
 /* mark a tag as collectable */
+// ctb := collectable tag bit
 #define ctb(t)			((t) | BIT_ISCOLLECTABLE)
 
 
@@ -107,9 +177,35 @@ typedef union Value {
 } Value;
 
 
-#define TValuefields	Value value_; int tt_
+#define TValuefields	Value value_; int tt_   // 为什么 tt_ 是4字节呢?
 
 
+/**
+ * TValue 才算是 Lua 类型
+ * 里面分两部分
+ * 1. 数据 value_
+ * 2. 类型 tt_
+ * 
+ * 数据分6种:
+ * 1. GC对象
+ * 2. 指针 (light userdata)
+ * 3. 布尔值
+ * 4. C函数指针 (light C functions)
+ * 5. 整型
+ * 6. 浮点型
+ * 
+ * 除第1种之外, 其他严格来讲都是 C 语言的类型
+ * C函数指针还指定了函数签名  int (*) (lua_State *L);
+ * 即: 返回值int; 参数是lua_State指针
+ * 
+ * 要留意的是这里有两处类型
+ * 1. TValue.tt_ ---------------------- int       32bit
+ * 2. TValue.gc->tt / GCObject.tt ----- lu_byte    8bit
+ * 
+ * 到底什么算是 TValue 呢?
+ * 1. 栈上的变量
+ * 2. Table 中的键或者值
+*/
 typedef struct lua_TValue {
   TValuefields;
 } TValue;
@@ -120,16 +216,27 @@ typedef struct lua_TValue {
 #define NILCONSTANT	{NULL}, LUA_TNIL
 
 
+// 下面所有的 o 类型均为 TValue*/StkId
 #define val_(o)		((o)->value_)
 
 
 /* raw type tag of a TValue */
+/**
+ * 完整的类型数据(8比特)
+*/
 #define rttype(o)	((o)->tt_)
 
 /* tag with no variants (bits 0-3) */
+/**
+ * 4比特表示类型(基本类型)
+*/
 #define novariant(x)	((x) & 0x0F)
 
 /* type tag of a TValue (bits 0-3 for tags + variant bits 4-5) */
+/**
+ * 6比特表示的类型
+ * 高2位会是基本类型上的附加类型
+*/
 #define ttype(o)	(rttype(o) & 0x3F)
 
 /* type tag of a TValue with no variants (bits 0-3) */
@@ -137,8 +244,11 @@ typedef struct lua_TValue {
 
 
 /* Macros to test type */
-#define checktag(o,t)		(rttype(o) == (t))
-#define checktype(o,t)		(ttnov(o) == (t))
+// 类型判断主要分两种:
+#define checktag(o,t)		(rttype(o) == (t))    // 完整类型
+#define checktype(o,t)		(ttnov(o) == (t))   // 基础类型
+
+// 供给外部调用的全是 ttisXXXX(o) 格式
 #define ttisnumber(o)		checktype((o), LUA_TNUMBER)
 #define ttisfloat(o)		checktag((o), LUA_TNUMFLT)
 #define ttisinteger(o)		checktag((o), LUA_TNUMINT)
@@ -303,11 +413,23 @@ typedef TValue *StkId;  /* index to stack elements */
 */
 typedef struct TString {
   CommonHeader;
+  /**
+   * 保留字, 定义在 luaX_tokens 中
+   * 这个1字节的 extra 指该 TString 对应的 luaX_tokens 下标(从1开始)
+   * 
+   * isreserved(s) 是否保留字
+  */
   lu_byte extra;  /* reserved words for short strings; "has hash" for longs */
-  lu_byte shrlen;  /* length for short strings */
+  
+  lu_byte shrlen;  /* length for short strings 理论上短字符串长度最长支持到255 */
   unsigned int hash;
   union {
     size_t lnglen;  /* length for long strings */
+    /**
+     * 只有短字符串会存入哈希缓存表
+     * hnext 用在哈希冲突的节点, 构建单链表
+     * 所以可以和长字符串长度 lnglen 做联结
+    */
     struct TString *hnext;  /* linked list for hash table */
   } u;
 } TString;
@@ -444,6 +566,7 @@ typedef struct UpVal UpVal;
 #define ClosureHeader \
 	CommonHeader; lu_byte nupvalues; GCObject *gclist
 
+// C 函数的 Upvalue 和 Lua 函数的 Upvalue 还不太一样
 typedef struct CClosure {
   ClosureHeader;
   lua_CFunction f;

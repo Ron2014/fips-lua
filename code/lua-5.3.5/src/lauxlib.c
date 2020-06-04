@@ -315,6 +315,9 @@ LUALIB_API void luaL_setmetatable (lua_State *L, const char *tname) {
 }
 
 
+/**
+ * 如果是 userdata, 就从它的 metatable 里面去
+*/
 LUALIB_API void *luaL_testudata (lua_State *L, int ud, const char *tname) {
   void *p = lua_touserdata(L, ud);
   if (p != NULL) {  /* value is a userdata? */
@@ -345,8 +348,8 @@ LUALIB_API void *luaL_checkudata (lua_State *L, int ud, const char *tname) {
 ** =======================================================
 */
 /**
- * L�ĵ�argλ�Ĳ������Ǹ��ַ�����
- * ������������ lst ���±ꡣ
+ * L�ĵ�argλ�Ĳ������Ǹ��ַ�����
+ * ������������ lst ���±ꡣ
 */
 LUALIB_API int luaL_checkoption (lua_State *L, int arg, const char *def,
                                  const char *const lst[]) {
@@ -397,9 +400,9 @@ LUALIB_API const char *luaL_checklstring (lua_State *L, int arg, size_t *len) {
 }
 
 /**
- * ��L�ĺ�������ջ�У��õ���argλ���ַ�������
- * �������ΪNULL����nil����ʹ��Ĭ��ֵdef
- * ͬʱ��¼�ַ������ȵ�len�ռ�
+ * ��L�ĺ�������ջ�У��õ���argλ���ַ�������
+ * �������ΪNULL����nil����ʹ��Ĭ��ֵdef
+ * ͬʱ��¼�ַ������ȵ�len�ռ�
 */
 LUALIB_API const char *luaL_optlstring (lua_State *L, int arg,
                                         const char *def, size_t *len) {
@@ -1038,6 +1041,22 @@ LUALIB_API const char *luaL_gsub (lua_State *L, const char *s, const char *p,
 }
 
 
+/**
+ * 内存分配函数/内存分配器(总入口)
+ * 它的含义是: 
+ * 1. 我需要把指针 ptr 指向的内存空间从原始大小 osize 改变成 nsize
+ * 2. 如果 ptr 是个有效指针, 希望已有的数据能够保留(realloc 就能做到)
+ * 3. 如果 ptr 是 NULL, 则可以通过返回值 void* 拿到新的指针
+ * 4. 如果 nsize 是 0, 表示的是释放内存
+ * 
+ * ud:
+ * userdata 的意思
+ * 用户自定义的用于内存分配的额外参数, Lua自己是不用的
+ * 
+ * 也就是说 l_alloc 相当于 C++ 的虚函数, 是等待被重载/替换的
+ * 它提供的是内存分配的函数签名和默认实现
+ * 
+*/
 static void *l_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
   (void)ud; (void)osize;  /* not used */
   if (nsize == 0) {
@@ -1045,11 +1064,28 @@ static void *l_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
     return NULL;
   }
   else
-    // ��� ptr��NULL��osize>0 ��ʾ����tt
     return realloc(ptr, nsize);
 }
 
-
+/**
+ * 默认的 panic 函数
+ * panic 和 lua 的保护模式有关
+ * 
+ * 保护模式:
+ * luaD_pcall(设置异常处理函数) -> luaD_rawrunprotected(设置longjmp并调用被保护的函数)
+ * 
+ * 调用luaD_pcall的有三处:
+ * 1. 文本文件解析: luaD_protectedparser
+ * 2. API lua_pcall/lua_pcallk
+ * 3. GCTM
+ * 
+ * 不需要设置自定义异常处理函数的保护模式:
+ * 1. 主线程的初始化 f_luaopen
+ * 1. 增加栈空间 growstack
+ * 2. 协程的唤醒 resume
+ * 3. unroll
+ * 4. auxsetnode
+*/
 static int panic (lua_State *L) {
   lua_writestringerror("PANIC: unprotected error in call to Lua API (%s)\n",
                         lua_tostring(L, -1));
@@ -1057,10 +1093,11 @@ static int panic (lua_State *L) {
 }
 
 /**
- * �� lua_newstate �ķ�װ��ʹ��Ĭ�ϲ�����
- * �ڴ����ӿ� l_alloc
- * global_State.ud NULL
- * �������� panic
+ * lua_newstate 创建 lua_State 主线程(同时包括 global_State)
+ * 指定默认内存分配器 l_alloc
+ * 默认内存分配器附加参数 ud = NULL
+ * 这两个值最终都会记在 global_State 上 (global_State实际上是个垃圾收集器)
+ * panic 表示的
 */
 LUALIB_API lua_State *luaL_newstate (void) {
   lua_State *L = lua_newstate(l_alloc, NULL);
@@ -1079,4 +1116,3 @@ LUALIB_API void luaL_checkversion_ (lua_State *L, lua_Number ver, size_t sz) {
     luaL_error(L, "version mismatch: app. needs %f, Lua core provides %f",
                   (LUAI_UACNUMBER)ver, (LUAI_UACNUMBER)*v);
 }
-

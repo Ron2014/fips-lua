@@ -189,7 +189,10 @@ typedef unsigned long Instruction;
 #endif
 
 
-/*
+/**
+ * N是集合的数量(最好是素数, 为啥?)
+ * M是每个集合的容量
+ * 
 ** Size of cache for strings in the API. 'N' is the number of
 ** sets (better be a prime) and "M" is the size of each set (M == 1
 ** makes a direct cache.)

@@ -73,6 +73,10 @@ struct lua_longjmp;  /* defined in ldo.c */
 #define KGC_EMERGENCY	1	/* gc was forced by an allocation failure */
 
 
+/**
+ * 字符串 hash 表
+ * 只有 global_State 会用到
+*/
 typedef struct stringtable {
   TString **hash;
   int nuse;  /* number of elements */
@@ -147,7 +151,7 @@ typedef struct CallInfo {
  * TString *memerrmsg;            // "not enough memory"
  * TString *tmname[TM_N];         // 元方法名称对应的 TString*
  * struct Table *mt[LUA_NUMTAGS]; // 各基本类型的元表
- * TString *strcache[STRCACHE_N][STRCACHE_M];   // API 用到的字符串缓存起来
+ * TString *strcache[STRCACHE_N][STRCACHE_M];   // API 用到的字符串缓存起来, 初始值是 memerrmsg
  * 
  * 垃圾收集器 Garbage Collector
  * l_mem totalbytes;          // 有效内存大小。就是黑色、灰色节点，确定为活动节点的内存大小。
@@ -185,7 +189,7 @@ typedef struct CallInfo {
  * GCObject *allweak;
  * 
  * GCObject *tobefnz;         // being-finalized表，记录的是前一轮GC的遗留对象
- * GCObject *fixedgc;
+ * GCObject *fixedgc;         // 常量/静态变量: 永远不会被GC
  * 
  * GC频率控制
  * unsigned int gcfinnum;     //
@@ -338,6 +342,8 @@ union GCUnion {
 };
 
 
+
+// 这里的 o 都是 GCObject
 #define cast_u(o)	cast(union GCUnion *, (o))
 
 /* macros to convert a GCObject into a specific value */

@@ -37,6 +37,9 @@
 
 
 /* ORDER RESERVED */
+/**
+ * 排好序的"保留字"(RESERVED)
+*/
 static const char *const luaX_tokens [] = {
     "and", "break", "do", "else", "elseif",
     "end", "false", "for", "function", "goto", "if",
@@ -66,7 +69,9 @@ static void save (LexState *ls, int c) {
   b->buffer[luaZ_bufflen(b)++] = cast(char, c);
 }
 
-
+/**
+ * 初始化 "_ENV" 和 保留字
+*/
 void luaX_init (lua_State *L) {
   int i;
   TString *e = luaS_newliteral(L, LUA_ENV);  /* create env name */
