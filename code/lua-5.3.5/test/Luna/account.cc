@@ -33,20 +33,23 @@ Luna<Account>::RegType Account::methods[] = {
 
 int main(int argc, char *argv[])
 {
-  lua_State *L = lua_open();
+  // lua_State *L = lua_open();
 
-  luaopen_base(L);
-  luaopen_table(L);
-  luaopen_io(L);
-  luaopen_string(L);
-  luaopen_math(L);
-  luaopen_debug(L);
+  // luaopen_base(L);
+  // luaopen_table(L);
+  // luaopen_io(L);
+  // luaopen_string(L);
+  // luaopen_math(L);
+  // luaopen_debug(L);
+
+  lua_State *L = luaL_newstate();
+  luaL_openlibs(L);
 
   Luna<Account>::Register(L);
 
   if(argc>1) luaL_dofile(L, argv[1]);
 
-  lua_setgcthreshold(L, 0);  // collected garbage
+  // lua_setgcthreshold(L, 0);  // collected garbage
   lua_close(L);
   return 0;
 }

@@ -34,7 +34,8 @@ fips_begin_unittest(lua-5.3.5)
     fips_vs_disable_warnings(4819)
 
     fips_include_directories(src)
-    fips_files_ex(test/ *.cc GROUP "sources")
+    fips_dir(test)
+    fips_files(MaskTest.cc SizeTest.cc)
 
     fips_deps(lua-5.3.5-lib)
 fips_end_unittest()

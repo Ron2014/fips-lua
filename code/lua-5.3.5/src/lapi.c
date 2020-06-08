@@ -1155,7 +1155,7 @@ LUA_API int lua_gc(lua_State *L, int what, int data)
   case LUA_GCSTEP:
   {
     /**
-       * 分步GC
+      * 分步GC
       */
     l_mem debt = 1; /* =1 to signal that it did an actual step */
     lu_byte oldrunning = g->gcrunning;

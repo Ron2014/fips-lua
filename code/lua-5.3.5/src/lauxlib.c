@@ -1085,6 +1085,9 @@ static void *l_alloc (void *ud, void *ptr, size_t osize, size_t nsize) {
  * 2. 协程的唤醒 resume
  * 3. unroll
  * 4. auxsetnode
+ * 
+ * 保护模式下调用的函数可以在任意时刻通过 luaD_throw 返回到保存点
+ * 也有可能 luaD_throw 没找到保存点, 此时就会调用panic了
 */
 static int panic (lua_State *L) {
   lua_writestringerror("PANIC: unprotected error in call to Lua API (%s)\n",
@@ -1097,7 +1100,7 @@ static int panic (lua_State *L) {
  * 指定默认内存分配器 l_alloc
  * 默认内存分配器附加参数 ud = NULL
  * 这两个值最终都会记在 global_State 上 (global_State实际上是个垃圾收集器)
- * panic 表示的
+ * panic 出错时调用的函数, 这里设置为默认的
 */
 LUALIB_API lua_State *luaL_newstate (void) {
   lua_State *L = lua_newstate(l_alloc, NULL);

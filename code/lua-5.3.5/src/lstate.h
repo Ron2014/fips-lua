@@ -146,7 +146,7 @@ typedef struct CallInfo {
  * unsigned int seed;     // 哈希要用到的随机数种子
  * const lua_Number *version;     // 版本数字。通过它判断lua虚拟机是否完整初始化, lua_newstate -> f_luaopen
  * struct lua_State *mainthread;  // 主线程的lua虚拟机
- * lua_CFunction panic;   // 异常终止前执行的函数
+ * lua_CFunction panic;           // 异常终止前执行的函数
  * struct lua_State *twups;       // lua_State 通过 twups 链接起来，这个是头结点
  * TString *memerrmsg;            // "not enough memory"
  * TString *tmname[TM_N];         // 元方法名称对应的 TString*
